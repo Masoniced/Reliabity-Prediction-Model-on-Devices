@@ -86,6 +86,7 @@ def sampler(data, samples=4, mu_init=.5, proposal_width=.5, plot=False, mu_prior
         
         if plot:
             plot_proposal(mu_current, mu_proposal, mu_prior_mu, mu_prior_sd, data, accept, posterior, i)
+            plot_proposal(mu_current, mu_proposal, mu_prior_mu, mu_prior_mu_ind, data, posterior_analytical)
         
         if accept:
             # Update position
