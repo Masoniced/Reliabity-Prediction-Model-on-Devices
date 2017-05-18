@@ -68,7 +68,7 @@ class MCMC:
         Uni_top = P(current_value)
         while criteria = 1:
 
-            
+
             r = np.random.uniform(0, Uni_top)
 
 
@@ -106,7 +106,7 @@ def sampler1(data, samples=4, mu_init=.5, proposal_width=.5, plot=False, mu_prio
         p_proposal = likelihood_proposal * prior_proposal
         
         # Accept proposal?
-        p_accept = p_proposal / p_current
+        p_accept = p_proposal / p_current_1
         
         # Usually would include prior probability, which we neglect here for simplicity
         accept = np.random.rand() < p_accept
