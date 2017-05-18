@@ -8,7 +8,7 @@ import sys
 
 class MCMC:
 
-    def MC_sampler(data, burn_in, tol, num_cluster=None):
+    def MC_MX_sampler(data, burn_in, tol, num_cluster=None):  # Mixture Weibull sampler
 
         # Initialization
         num_data, dim_data = np.shape(data)
@@ -53,8 +53,31 @@ class MCMC:
 
         # Update of alpha (sampled from Motroplis Hasting/Rejection support)
         for i in range(num_cluster):
-            new_alpha_alpha = np.array([w_model[k] * (theta[k]*alpha[k]*data[i]**(alpha[k]-1)) * exp(-theta[k]*data[i]**(alpha[k])) for k in range(num_cluster)])
-            new_alpha_beta = np.array([w_model[j] * (theta[j]* alpha_beta[j])**(alpha[j]-1) for k in range(num_cluster)])
+            p_alpha = lambda x: x**(len(cluster_data[i]) + alpha_alpha - 1) * exp(x * sum([log(cluster_data[i][k]) for k in range(len(cluster_data[i]))]) - 
+                theta[i] * sum([cluster_data[i][k]**(x) for k in range(len(cluster_data[i]))]) - x * alpha_beta)
+
+
+        return
+
+
+
+    def slicing_sampler(pdf, current_value, support=1e3): 
+        
+        P = pdf
+        criteria = 1
+        Uni_top = P(current_value)
+        while criteria = 1:
+
+            
+            r = np.random.uniform(0, Uni_top)
+
+
+
+
+
+
+
+
 
 
         
@@ -99,6 +122,7 @@ def sampler1(data, samples=4, mu_init=.5, proposal_width=.5, plot=False, mu_prio
             mu_prososal = new_proposal
         
         posterior.append(mu_current)
+        posterior_analytical.append(updates)
         
     return posterior
 
@@ -134,7 +158,7 @@ def sampler(data, samples=4, mu_init=.5, proposal_width=.5, plot=False, mu_prior
             plot_proposal(mu_current, mu_proposal, mu_prior_mu, mu_prior_sd, data, accept, posterior, i)
         
         if accept:
-            # Update position
+            # Update position on secondary powers 
             mu_current = mu_proposal
         
         posterior.append(mu_current)
@@ -172,7 +196,7 @@ def BFGS(expr, initial, tol, alpha = 1, mix_iter = 50):
         new_value = temp_value + s
         new_g = np.array(gradient_func(new_value))
         y = new_g - g
-        # Define the posterior density 
+        # Define secondary qusai newtown updates
         if np.dot(s,y) > 0:
             by_product =  np.dot(np.transpose([s]),[s]) / np.dot(s,y) - np.dot(np.dot(hessian_inv,np.transpose([y])), np.dot([y],hessian_inv)) / np.dot([y], np.dot(hessian_inv,np.transpose([y])))
         else:
