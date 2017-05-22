@@ -14,39 +14,43 @@ class MCMC:
         num_data = len(data)
         if num_cluster == None:
             num_cluster = 2
-        cluster_data = [[] for i in range(num_cluster)]
         count= 0
             
         # Posterior Distribution sum(w_model*(theta*(s)**(alpha-1)*alpha*exp(-theta*(s)**alpha))
-        theta_alpha = 0.001
-        theta_beta = 0.001
+        theta_alpha = 1
+        theta_beta = 0.1
         alpha_alpha = 1
         alpha_beta = 0.2
         w_fa = np.ones(num_cluster)
         w_model = np.random.dirichlet(w_fa)
         theta = np.random.gamma(theta_alpha, theta_beta, num_cluster)
         alpha = np.random.gamma(alpha_alpha, alpha_beta, num_cluster)
+        likelihood_record = []
+        w_record = []
+        theta_record = []
+        alpha_record = []
 
-        while count <= burn_in + test:
+        while count <= (burn_in + test):
 
             count += 1
             log_likelihood = 0
-            likelihood_record = []
-            w_record = []
-            theta_record = []
-            alpha_record = []
+            cluster_data = [[] for i in range(num_cluster)]
+            new_theta = [[] for i in range(num_cluster)]
+            new_alpha = [[] for i in range(num_cluster)]
+
             # Update of P(z)
+            #import pdb; pdb.set_trace()
             for i in range(num_data):
 
-                #import pdb; pdb.set_trace()
                 pz_list = np.array([w_model[k] * (theta[k]*alpha[k]*data[i]**(alpha[k]-1)) * exp(-theta[k]*data[i]**(alpha[k])) for k in range(num_cluster)])
-                total_pz = sum(pz_list)
-                if total_pz == 0:
-                    total_pz = 1
-                norm_pz = np.cumsum(pz_list)/total_pz
-                mv_pz, ind_pz = min([(mv_pz, ind_pz) for ind_pz, mv_pz in enumerate(abs(norm_pz-np.random.uniform()))])
+
+                mv_pz, ind_pz = max([(mv_pz, ind_pz) for ind_pz, mv_pz in enumerate(pz_list)])
                 cluster_data[ind_pz].append(data[i])
-                log_likelihood += log(pz_list[ind_pz])
+
+                if pz_list[ind_pz] == 0:
+                    log_likelihood += -inf
+                else:
+                    log_likelihood += log(pz_list[ind_pz])
 
             # Update of w_model
             #import pdb; pdb.set_trace()
@@ -58,29 +62,37 @@ class MCMC:
 
 
             # Update of theta
+            #import pdb; pdb.set_trace()
             for i in range(num_cluster):
 
                 new_theta_alpha = len(cluster_data[i]) + theta_alpha
                 new_theta_beta = theta_beta + sum([cluster_data[i][k]**(alpha[i]) for k in range(len(cluster_data[i]))])
-                theta[i] = np.random.gamma(new_theta_alpha, new_theta_beta)
+                new_theta[i] = np.random.gamma(new_theta_alpha, new_theta_beta)
+
+            theta = new_theta[:]
 
             # Update of alpha (sampled from Motroplis Hasting/Rejection support)
+            #import pdb; pdb.set_trace()
             for i in range(num_cluster):
 
-                import pdb; pdb.set_trace()
+                #import pdb; pdb.set_trace()
                 p_alpha = lambda x: x**(len(cluster_data[i]) + alpha_alpha - 1) * exp(x * sum([log(cluster_data[i][k]) for k in range(len(cluster_data[i]))]) - 
                     theta[i] * sum([cluster_data[i][k]**(x) for k in range(len(cluster_data[i]))]) - x * alpha_beta)
 
-                new_alpha = MCMC.slice_sampler(p_alpha, alpha[i])
-                alpha[i] = new_alpha
+                new_alpha[i] = MCMC.slice_sampler(p_alpha, alpha[i])
+            
+            alpha = new_alpha[:]
 
+            #if count >= burn_in:
+
+            # import pdb; pdb.set_trace()
             if count >= burn_in:
-
-                w_record.append(w_model)
-                theta_record.append(theta)
-                alpha_record.append(alpha)
+                w_record.append(w_model[:])
+                theta_record.append(new_theta[:])
+                alpha_record.append([new_alpha])
 
             likelihood_record.append(log_likelihood)
+            
 
         return w_record, theta_record, alpha_record, likelihood_record
 
@@ -151,18 +163,18 @@ class MCMC:
                 new_alpha = slice_sampler(p_alpha, alpha[i])
                 alpha[i] = new_alpha
 
-            if count >= burn_in:
+            #if count >= burn_in:
 
-                w_record.append(w_model)
-                theta_record.append(theta)
-                alpha_record.append(alpha)
+            w_record.append(w_model)
+            theta_record.append(theta)
+            alpha_record.append(alpha)
 
             likelihood_record.append(log_likelihood)
 
         return w_record, theta_record, alpha_record, likelihood_record
 
 
-    def slice_sampler(pdf, current_value, support=1e3, limit=3e2): 
+    def slice_sampler(pdf, current_value, support=1e3, limit=1e6): 
         
         P = pdf
         criteria = 1
@@ -178,10 +190,22 @@ class MCMC:
                 break
 
             if count > limit:
-                count = 0
-                support = support * 10
+                criteria = 0
+                new_sample = current_value
+
 
         return new_sample
+
+    def data_preprocessing(data, shift=1):
+
+        data = data.astype(np.float32, copy = False)
+        data = data[~np.isnan(data)]
+        min_value = min(data)
+        scale = max(data) - min(data)
+
+        data = (data -min_value) /  scale + shift
+
+        return data, scale, min_value
 
 
 
@@ -281,15 +305,16 @@ p_data = p_data.iloc[:,:].values
 data = p_data[:,0]    # data from which column
 data = data.astype(np.float32, copy = False)
 data = data[~np.isnan(data)]
+Data, scale, min_value = MCMC.data_preprocessing(data)
 
 
 #np.seterr(divide='ignore', invalid='ignore', over='ignore')
 
 
-w_record, theta_record, alpha_record, likelihood_record = MCMC.MCMC_MX_sampler(data, burn_in=1000, test=100, tol=1e-9, num_cluster=2)
-
+w_record, theta_record, alpha_record, likelihood_record = MCMC.MCMC_MX_sampler(Data, burn_in=100, test=100, tol=1e-9, num_cluster=4)
+import pdb; pdb.set_trace()
 plt.interactive(True)
-plt.plot(range(1100), likelihood_record, 'bo', markersize=10) 
+plt.plot(range(200), likelihood_record, 'bo', markersize=10) 
 plt.xlabel(r'Iteration',{'fontname':'Times New Roman','fontsize':18})
 plt.ylabel(r'Loglikelihood',{'fontname':'Times New Roman','fontsize':18})
 
