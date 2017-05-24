@@ -17,11 +17,12 @@ class MCMC:
         count= 0
             
         # Posterior Distribution sum(w_model*(theta*(s)**(alpha-1)*alpha*exp(-theta*(s)**alpha))
-        theta_alpha = 1
-        theta_beta = 0.1
+        theta_alpha = 0.01
+        theta_beta = 0.001
         alpha_alpha = 1
         alpha_beta = 0.2
         w_fa = np.ones(num_cluster)
+        origin_w_fa = w_fa[:]
         w_model = np.random.dirichlet(w_fa)
         theta = np.random.gamma(theta_alpha, theta_beta, num_cluster)
         alpha = np.random.gamma(alpha_alpha, alpha_beta, num_cluster)
@@ -48,7 +49,7 @@ class MCMC:
                 cluster_data[ind_pz].append(data[i])
 
                 if pz_list[ind_pz] == 0:
-                    log_likelihood += -inf
+                    log_likelihood += -1/tol
                 else:
                     log_likelihood += log(pz_list[ind_pz])
 
@@ -56,7 +57,7 @@ class MCMC:
             #import pdb; pdb.set_trace()
             for i in range(num_cluster):
 
-                w_fa[i] = w_model[i] + len(cluster_data[i])
+                w_fa[i] = origin_w_fa[i] + len(cluster_data[i])
 
             w_model = np.random.dirichlet(w_fa)
 
@@ -75,11 +76,10 @@ class MCMC:
             #import pdb; pdb.set_trace()
             for i in range(num_cluster):
 
-                #import pdb; pdb.set_trace()
                 p_alpha = lambda x: x**(len(cluster_data[i]) + alpha_alpha - 1) * exp(x * sum([log(cluster_data[i][k]) for k in range(len(cluster_data[i]))]) - 
                     theta[i] * sum([cluster_data[i][k]**(x) for k in range(len(cluster_data[i]))]) - x * alpha_beta)
 
-                new_alpha[i] = MCMC.slice_sampler(p_alpha, alpha[i])
+                new_alpha[i] = MCMC.slice_sampler(p_alpha, alpha[i], left_bound=0)
             
             alpha = new_alpha[:]
 
@@ -88,8 +88,8 @@ class MCMC:
             # import pdb; pdb.set_trace()
             if count >= burn_in:
                 w_record.append(w_model[:])
-                theta_record.append(new_theta[:])
-                alpha_record.append([new_alpha])
+                theta_record.append(theta[:])
+                alpha_record.append(alpha[:])
 
             likelihood_record.append(log_likelihood)
             
@@ -174,29 +174,118 @@ class MCMC:
         return w_record, theta_record, alpha_record, likelihood_record
 
 
-    def slice_sampler(pdf, current_value, support=1e3, limit=1e6): 
-        
+
+
+
+    def slice_sampler(pdf, current_value, step=10, left_bound=None, right_bound=None): 
+
         P = pdf
         criteria = 1
         Uni_top = P(current_value)
         count = 0
+        left = -step
+        right = step
+        ad_l_bound = left_bound
+        ad_r_bound = right_bound
         while criteria == 1:
 
             count += 1
-            r = support*np.random.uniform(0, 1)
-            if P(r) >= Uni_top:
-                new_sample = r
+            left_out = MCMC.find_boundary(P, current_value, Uni_top, left, l_bound=ad_l_bound, r_bound=ad_r_bound)
+            right_out = MCMC.find_boundary(P, current_value, Uni_top, right, l_bound=ad_l_bound, r_bound=ad_r_bound)
+
+            n_point = np.random.uniform(0,1) * (right_out - left_out) + left_out
+
+            if P(n_point) >= Uni_top:
+                new_sample = n_point
                 criteria = 0
                 break
+            elif n_point >= current_value:
 
-            if count > limit:
-                criteria = 0
-                new_sample = current_value
+                ad_r_bound = n_point
+            else:
 
+                ad_l_bound = n_point
 
         return new_sample
 
-    def data_preprocessing(data, shift=1):
+
+
+
+    def find_boundary(pdf, s_point, support, direction, l_bound=None, r_bound=None):
+
+        criteria = 1
+
+        if l_bound == None and r_bound != None:
+
+            while criteria == 1:
+
+                n_point = s_point + direction
+                if n_point >= r_bound:
+                    out = r_bound
+                    criteria = 0
+                    break
+                elif pdf(n_point) <= support:
+                    out = n_point
+                    criteria = 0
+                    break
+                else:
+                    direction *= 2
+
+        elif l_bound != None and r_bound == None:
+
+            while criteria == 1:
+
+                n_point = s_point + direction
+                if n_point <= l_bound:
+                    out = l_bound
+                    criteria = 0
+                    break
+                elif pdf(n_point) <= support:
+                    out = n_point
+                    criteria = 0
+                    break
+                else:
+                    direction *= 2
+
+        elif l_bound != None and r_bound != None:
+
+            while criteria == 1:
+
+                n_point = s_point + direction
+                if n_point <= l_bound:
+                    out = l_bound
+                    criteria = 0
+                    break
+                elif n_point >= r_bound:
+                    out = r_bound
+                    criteria = 0
+                    break                    
+                elif pdf(n_point) <= support:
+                    out = n_point
+                    criteria = 0
+                    break
+                else:
+                    direction *= 2
+
+        else:
+
+            while criteria == 1:
+
+                n_point = s_point + direction
+                if pdf(n_point) <= support:
+                    out = n_point
+                    criteria = 0
+                    break
+                else:
+                    direction *= 2
+
+        return out
+
+
+
+
+
+    def data_preprocessing(data, shift=1e-5):
 
         data = data.astype(np.float32, copy = False)
         data = data[~np.isnan(data)]
@@ -204,6 +293,7 @@ class MCMC:
         scale = max(data) - min(data)
 
         data = (data -min_value) /  scale + shift
+
 
         return data, scale, min_value
 
@@ -310,11 +400,10 @@ Data, scale, min_value = MCMC.data_preprocessing(data)
 
 #np.seterr(divide='ignore', invalid='ignore', over='ignore')
 
-
-w_record, theta_record, alpha_record, likelihood_record = MCMC.MCMC_MX_sampler(Data, burn_in=100, test=100, tol=1e-9, num_cluster=4)
-import pdb; pdb.set_trace()
+set_burn_in=10000
+w_record, theta_record, alpha_record, likelihood_record = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=100, tol=1e-9, num_cluster=3)
 plt.interactive(True)
-plt.plot(range(200), likelihood_record, 'bo', markersize=10) 
+plt.plot(range(set_burn_in+101), likelihood_record, 'bo', markersize=10) 
 plt.xlabel(r'Iteration',{'fontname':'Times New Roman','fontsize':18})
 plt.ylabel(r'Loglikelihood',{'fontname':'Times New Roman','fontsize':18})
 
