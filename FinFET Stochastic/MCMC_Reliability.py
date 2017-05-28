@@ -414,8 +414,9 @@ Data, scale, min_value = MCMC.data_preprocessing(data)
 
 #np.seterr(divide='ignore', invalid='ignore', over='ignore')
 
-set_burn_in=10000
-w_record, theta_record, alpha_record, likelihood_record = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=100, tol=1e-9, num_cluster=3)
+set_burn_in=1e5
+w_record, theta_record, alpha_record, likelihood_record = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=100, tol=1e-9, num_cluster=2)
+
 import pdb; pdb.set_trace()
 plt.interactive(True)
 plt.plot(range(set_burn_in+101), likelihood_record, 'bo', markersize=10) 
