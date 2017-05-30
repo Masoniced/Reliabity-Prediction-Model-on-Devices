@@ -45,7 +45,10 @@ class MCMC:
 
                 pz_list = np.array([w_model[k] * (theta[k]*alpha[k]*data[i]**(alpha[k]-1)) * exp(-theta[k]*data[i]**(alpha[k])) for k in range(num_cluster)])
 
-                mv_pz, ind_pz = max([(mv_pz, ind_pz) for ind_pz, mv_pz in enumerate(pz_list)])
+                total_pz_list = np.cumsum(pz_list)
+                total_pz_list = total_pz_list - np.random.uniform(0,1) * total_pz_list[-1]
+                total_pz_list[total_pz_list < 0] = inf
+                mv_pz, ind_pz = min([(mv_pz, ind_pz) for ind_pz, mv_pz in enumerate(total_pz_list)])
                 cluster_data[ind_pz].append(data[i])
 
                 if pz_list[ind_pz] == 0:
@@ -176,6 +179,7 @@ class MCMC:
 
             # Record the sampling after burn-in
             if count >= burn_in:
+
                 w_record.append(w_model[:])
                 theta_record.append(theta[:])
                 alpha_record.append(alpha[:])
@@ -419,7 +423,7 @@ w_record, theta_record, alpha_record, likelihood_record = MCMC.MCMC_MX_sampler(D
 
 import pdb; pdb.set_trace()
 plt.interactive(True)
-plt.plot(range(set_burn_in+101), likelihood_record, 'bo', markersize=10) 
+plt.plot(range(int(set_burn_in)+101), likelihood_record, 'bo', markersize=10) 
 plt.xlabel(r'Iteration',{'fontname':'Times New Roman','fontsize':18})
 plt.ylabel(r'Loglikelihood',{'fontname':'Times New Roman','fontsize':18})
 
