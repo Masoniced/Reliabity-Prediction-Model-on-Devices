@@ -8,15 +8,18 @@ import sys
 
 class MCMC:
 
-    def MCMC_MX_sampler(data, burn_in, test, tol, num_cluster=None):  # Mixture Weibull sampler
+    def MCMC_MX_sampler(data, burn_in, test, tol, num_cluster=None, thinning_gap=100):  # Mixture Weibull sampler
 
         # Initialization
         num_data = len(data)
         if num_cluster == None:
             num_cluster = 2
-        count= 0
+        count = 0
+        thin_count = 0
+        acm_length = int(np.round(burn_in + test)/thinning_gap)
             
         # Posterior Distribution sum(w_model*(theta*(s)**(alpha-1)*alpha*exp(-theta*(s)**alpha))
+        # Pramaters
         theta_alpha = 0.01
         theta_beta = 0.001
         alpha_alpha = 1
@@ -26,12 +29,17 @@ class MCMC:
         w_model = np.random.dirichlet(w_fa)
         theta = np.random.gamma(theta_alpha, theta_beta, num_cluster)
         alpha = np.random.gamma(alpha_alpha, alpha_beta, num_cluster)
-        likelihood_record = []
-        w_record = []
-        theta_record = []
-        alpha_record = []
+        # Samples
+        likelihood_record = np.zeros(burn_in + test)
+        w_record = np.zeros((num_cluster,test))
+        theta_record = np.zeros((num_cluster,test))
+        alpha_record = np.zeros((num_cluster,test))
+        # Autocorrelation Check
+        w_acm = np.zeros((num_cluster, acm_length))
+        theta_acm = np.zeros((num_cluster, acm_length))
+        alpha_acm = np.zeros((num_cluster, acm_length))
 
-        while count <= (burn_in + test):
+        while count <= (burn_in + test - 1):
 
             count += 1
             log_likelihood = 0
@@ -88,12 +96,24 @@ class MCMC:
 
 
             # Record the sampling after burn-in
-            if count >= burn_in:
-                w_record.append(w_model[:])
-                theta_record.append(theta[:])
-                alpha_record.append(alpha[:])
+            if count > burn_in:
+                w_record[:,count - burn_in - 1] = w_model[:]
+                theta_record[:,count - burn_in - 1] = theta[:]
+                alpha_record[:,count - burn_in - 1] = alpha[:]
 
-            likelihood_record.append(log_likelihood)
+            likelihood_record[count - 1] = log_likelihood
+
+            # Thinning the Markov Chain
+            if count == (thin_count + 1) * thinning_gap:
+                w_acm[:,thin_count] = w_model[:]
+                theta_acm[:,thin_count] = theta[:]
+                alpha_acm[:,thin_count] = alpha[:]
+                thin_count += 1
+
+        
+
+
+
             
 
         return w_record, theta_record, alpha_record, likelihood_record
@@ -316,6 +336,10 @@ class MCMC:
         return data, scale, min_value
 
 
+    def Check_converge(log_likelihood, parameters, tol, mode):
+
+
+
 
 def BFGS(expr, initial, tol, alpha = 1, mix_iter = 50):
 
@@ -419,7 +443,8 @@ Data, scale, min_value = MCMC.data_preprocessing(data)
 #np.seterr(divide='ignore', invalid='ignore', over='ignore')
 
 set_burn_in=1e5
-w_record, theta_record, alpha_record, likelihood_record = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=100, tol=1e-9, num_cluster=2)
+set_test=100
+w_record, theta_record, alpha_record, likelihood_record = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=4)
 
 import pdb; pdb.set_trace()
 plt.interactive(True)
