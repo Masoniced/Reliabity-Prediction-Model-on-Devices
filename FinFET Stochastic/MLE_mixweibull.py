@@ -50,7 +50,7 @@ def MLE_weibull(data, mode, ratio=1/3, fixa=None, fixb=None, tol=1e-9, custom = 
 	elif mode=='BC':
 
 		t, k1, k2, tor1, tor2  = sy.symbols('t k1 k2 tor1 tor2')
-		CDF = 1-(1 - sy.exp(- (t/tor1)**k1)) * (1-sy.exp(- (t/tor2)**k2))
+		CDF = 1 - sy.exp(- (t/tor1)**k1) * sy.exp(- (t/tor2)**k2)
 		Log_PDF = - sy.log(sy.diff(CDF, t))
 
 		if fixa==None and fixb==None:
@@ -75,13 +75,13 @@ def MLE_weibull(data, mode, ratio=1/3, fixa=None, fixb=None, tol=1e-9, custom = 
 
 	elif mode=='LBC':
 
-		t, a1, a2, b1, b2, tor1, tor2 = sy.symbols('t a1 a2 b1 b2 tor1 tor2')
-		CDF = 1 - (1 + 1/a1*(t/tor1)**(b1))**(-a1) * (1 + 1/a2*(t/tor2)**(b2))**(-a2)
+		t, k1, k2, tor1, tor2  = sy.symbols('t k1 k2 tor1 tor2')
+		CDF = 1 - sy.exp(- (t/tor1)**k1) * sy.exp(- (t/tor2)**k2)
 
 		if fixa==None and fixb==None:
-			initial_values =[1, 1, 1, 1, data[round(data_length*0.63*ratio) -1], data[round(data_length*0.63*(1-ratio)+data_length*ratio) -1]]
-			var_list = [a1, a2, b1, b2, tor1, tor2]
-			Probability_bound = ((0,None), (0,None),(0,None),(0,None),(0,None),(0,None))
+			initial_values =[ 0.001, 0.001, data[round(data_length*0.63*ratio) -1], data[round(data_length*0.63*(1-ratio)+data_length*ratio) -1]]
+			var_list = [k1, k2, tor1, tor2]
+			Probability_bound = ((tol,1/tol),(tol,1/tol),(tol,1/tol),(tol,1/tol))
 			Least_func = sum([(CDF.subs(t, i) - j)**2 for i,j in zip(data, raw_probability)])
 		elif fixa==None and fixb!=None:
 			initial_values =[1, 1, data[round(data_length*0.63*ratio) -1], data[round(data_length*0.63*(1-ratio)+data_length*ratio) -1]]
@@ -405,27 +405,60 @@ Data_file = pd.ExcelFile(r'C:\Users\Mason\Documents\Project\Matlab Project\Clust
 p_data = Data_file.parse('Sheet1', index_row = None, header = None)
 p_data.drop(p_data.columns[[0]], axis = 0, inplace  =True)  # drop first row
 p_data = p_data.iloc[:,:].values
-data = p_data[:,4]    # data from which column
-data = data.astype(np.float32, copy = False)
-data = data[~np.isnan(data)]
+data1 = p_data[:,0]    # data from which column
+data1 = data1.astype(np.float32, copy = False)
+data1 = data1[~np.isnan(data1)]
+
+data2 = p_data[:,8]    # data from which column
+data2 = data2.astype(np.float32, copy = False)
+data2 = data2[~np.isnan(data2)]
+
+data3 = p_data[:,4]    # data from which column
+data3 = data3.astype(np.float32, copy = False)
+data3 = data3[~np.isnan(data3)]
 
 custom = None
 if custom == None:
-	Result1, Data1, C_Pro1, fitting_range1, fitting_Prob1 = MLE(data, 'LBC', tol=1e-11)
-	Result2, Data2, C_Pro2, fitting_range2, fitting_Prob2 = MLE_weibull(data, 'BC', tol=1e-11)
-	Result3, Data3, C_Pro3, fitting_range3, fitting_Prob3 = MLE_weibull(data, 'SC', tol=1e-11)
-	print(Result1)
-	print(Result2)
-	print(Result3)
+	Result1_1, Data1_1, C_Pro1_1, fitting_range1_1, fitting_Prob1_1 = MLE(data1, 'BC', tol=1e-8)
+	Result2_1, Data2_1, C_Pro2_1, fitting_range2_1, fitting_Prob2_1 = MLE_weibull(data1, 'LBC', tol=1e-7)
+	Result3_1, Data3_1, C_Pro3_1, fitting_range3_1, fitting_Prob3_1 = MLE_weibull(data1, 'SC', tol=1e-8)
+	print(Result1_1)
+	print(Result2_1)
+	print(Result3_1)
+	#import pdb; pdb.set_trace()
+	Result1_2, Data1_2, C_Pro1_2, fitting_range1_2, fitting_Prob1_2 = MLE(data2, 'BC', tol=1e-5)
+	Result2_2, Data2_2, C_Pro2_2, fitting_range2_2, fitting_Prob2_2 = MLE_weibull(data2, 'BC', tol=1e-11)
+	Result3_2, Data3_2, C_Pro3_2, fitting_range3_2, fitting_Prob3_2 = MLE_weibull(data2, 'SC', tol=1e-11)
+	print(Result1_2)
+	print(Result2_2)
+	print(Result3_2)
+
+	Result1_3, Data1_3, C_Pro1_3, fitting_range1_3, fitting_Prob1_3 = MLE(data3, 'BC', tol=1e-11)
+	Result2_3, Data2_3, C_Pro2_3, fitting_range2_3, fitting_Prob2_3 = MLE_weibull(data3, 'BC', tol=1e-11)
+	Result3_3, Data3_3, C_Pro3_3, fitting_range3_3, fitting_Prob3_3 = MLE_weibull(data3, 'SC', tol=1e-11)
+	print(Result1_3)
+	print(Result2_3)
+	print(Result3_3)
 
 	plt.interactive(True)
 
-	plt.plot(fitting_range2, fitting_Prob2, 'b-', linewidth=3)
-	plt.plot(fitting_range3, fitting_Prob3, 'g-', linewidth=3)
-	plt.plot(Data1, C_Pro1, 'ko', markersize=8)
-	plt.plot(fitting_range1, fitting_Prob1, 'r-', linewidth=3)
+	plt.plot(fitting_range2_1, fitting_Prob2_1, 'b-', linewidth=3)
+	plt.plot(fitting_range3_1, fitting_Prob3_1, 'g-', linewidth=3)
+	plt.plot(Data1_1, C_Pro1_1, 'ko', markersize=8)
+	plt.plot(fitting_range1_1, fitting_Prob1_1, 'r-', linewidth=3)
+
+	plt.plot(fitting_range2_2, fitting_Prob2_2, 'b-', linewidth=3)
+	plt.plot(fitting_range3_2, fitting_Prob3_2, 'g-', linewidth=3)
+	plt.plot(Data1_2, C_Pro1_2, 'ko', markersize=8)
+	plt.plot(fitting_range1_2, fitting_Prob1_2, 'r-', linewidth=3)
+
+	plt.plot(fitting_range2_3, fitting_Prob2_3, 'b-', linewidth=3)
+	plt.plot(fitting_range3_3, fitting_Prob3_3, 'g-', linewidth=3)
+	plt.plot(Data1_3, C_Pro1_3, 'ko', markersize=8)
+	plt.plot(fitting_range1_3, fitting_Prob1_3, 'r-', linewidth=3)	
 
 	plt.xscale('log')
+	plt.ylim([-4,2])
 	plt.xlabel(r'Time to Failure (s)',{'fontname':'Times New Roman','fontsize':18})
 	plt.ylabel(r'ln(-ln(1-F))',{'fontname':'Times New Roman','fontsize':18})
 

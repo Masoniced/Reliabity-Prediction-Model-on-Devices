@@ -30,7 +30,7 @@ class MCMC:
         theta = np.random.gamma(theta_alpha, theta_beta, num_cluster)
         alpha = np.random.gamma(alpha_alpha, alpha_beta, num_cluster)
         # Samples
-        likelihood_record = np.zeros(burn_in + test)
+        likelihood_record = np.zeros(int(burn_in + test))
         w_record = np.zeros((num_cluster,test))
         theta_record = np.zeros((num_cluster,test))
         alpha_record = np.zeros((num_cluster,test))
@@ -97,20 +97,20 @@ class MCMC:
 
             # Record the sampling after burn-in
             if count > burn_in:
-                w_record[:,count - burn_in - 1] = w_model[:]
-                theta_record[:,count - burn_in - 1] = theta[:]
-                alpha_record[:,count - burn_in - 1] = alpha[:]
+                w_record[:,int(count - burn_in - 1)] = w_model[:]
+                theta_record[:,int(count - burn_in - 1)] = theta[:]
+                alpha_record[:,int(count - burn_in - 1)] = alpha[:]
 
             likelihood_record[count - 1] = log_likelihood
 
-            # Thinning the Markov Chain
+            # Thinning the Markov Chain and check the convergency
             if count == (thin_count + 1) * thinning_gap:
                 w_acm[:,thin_count] = w_model[:]
                 theta_acm[:,thin_count] = theta[:]
                 alpha_acm[:,thin_count] = alpha[:]
                 thin_count += 1
 
-        
+            Autocorrelation_w = [sm.tsa.stattools.acf(w_acm[i], unbiased=True, nlags=50, fft=True)]
 
 
 
@@ -336,7 +336,7 @@ class MCMC:
         return data, scale, min_value
 
 
-    def Check_converge(log_likelihood, parameters, tol, mode):
+
 
 
 

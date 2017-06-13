@@ -167,7 +167,7 @@ def MLE(data, mode, ratio=1/3, fixa=None, fixb=None, tol=1e-9, custom = None):
 			CDF = CDF.subs(i, j)
 
 		F = sy.lambdify(t, CDF)
-		import pdb; pdb.set_trace()
+		#import pdb; pdb.set_trace()
 		fitting_range = np.logspace(np.log(data[0]/1.5), np.log(data[-1]*1.5), 200, base=e)
 
 
@@ -269,11 +269,11 @@ def step_checking(f, g, d, x, ini_alpha, tol, mixiter=50):
 
 
 Data_file = pd.ExcelFile(r'C:\Users\Mason\Documents\Project\Matlab Project\Clustering data processing\FinFET\125 TDDB FR0709_position.xlsx')  # revise path
-#Data_file = pd.ExcelFile(r'C:\Users\Sen\Desktop\1.xlsx')
+#p_data = pd.read_csv(r'C:\Users\Mason\Desktop\LC8A_ST-34_TDDB Raw.txt', sep='\t', header = None, low_memory=False)
 p_data = Data_file.parse('Sheet1', index_row = None, header = None)
 p_data.drop(p_data.columns[[0]], axis = 0, inplace  =True)  # drop first row
 p_data = p_data.iloc[:,:].values
-data = p_data[:,0]    # data from which column
+data = p_data[:,12]    # data from which column
 data = data.astype(np.float32, copy = False)
 data = data[~np.isnan(data)]
 
@@ -281,7 +281,7 @@ data = data[~np.isnan(data)]
 
 custom = None
 if custom == None:
-	Result, Data, C_Pro, fitting_range, fitting_Prob = MLE(data, 'BC', tol=1e-9)
+	Result, Data, C_Pro, fitting_range, fitting_Prob = MLE(data, 'LBC', tol=1e-9)
 	print(Result)
 
 	plt.interactive(True)
