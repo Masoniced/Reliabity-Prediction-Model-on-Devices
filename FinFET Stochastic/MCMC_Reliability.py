@@ -3,8 +3,8 @@ import pandas as pd
 import sympy as sy
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+import statsmodels.tsa.api as sm
 from math import *
-import sys
 
 class MCMC:
 
@@ -110,13 +110,14 @@ class MCMC:
                 alpha_acm[:,thin_count] = alpha[:]
                 thin_count += 1
 
-            Autocorrelation_w = [sm.tsa.stattools.acf(w_acm[i], unbiased=True, nlags=50, fft=True)]
-
+        Autocorrelation_w = [sm.stattools.acf(w_acm[i], unbiased=True, nlags=50, fft=True) for i in range(num_cluster)]
+        Autocorrelation_theta = [sm.stattools.acf(theta_acm[i], unbiased=True, nlags=50, fft=True) for i in range(num_cluster)]
+        Autocorrelation_alpha = [sm.stattools.acf(alpha_acm[i], unbiased=True, nlags=50, fft=True) for i in range(num_cluster)]
 
 
             
 
-        return w_record, theta_record, alpha_record, likelihood_record
+        return w_record, theta_record, alpha_record, likelihood_record, Autocorrelation_w, Autocorrelation_theta, Autocorrelation_alpha
 
 
 
@@ -444,11 +445,23 @@ Data, scale, min_value = MCMC.data_preprocessing(data)
 
 set_burn_in=1e5
 set_test=100
-w_record, theta_record, alpha_record, likelihood_record = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=4)
+num_cluster_set=3
+w_record, theta_record, alpha_record, likelihood_record, Autocorrelation_w, Autocorrelation_theta, Autocorrelation_alpha = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=num_cluster_set)
 
 import pdb; pdb.set_trace()
-plt.interactive(True)
-plt.plot(range(int(set_burn_in)+101), likelihood_record, 'bo', markersize=10) 
-plt.xlabel(r'Iteration',{'fontname':'Times New Roman','fontsize':18})
-plt.ylabel(r'Loglikelihood',{'fontname':'Times New Roman','fontsize':18})
+f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+for i in range(num_cluster_set):
+    ax1.plot(int(np.size(Autocorrelation_w[i])), Autocorrelation_w,'b-')
+    ax2.plot(int(np.size(Autocorrelation_theta[i])), Autocorrelation_theta,'r-')
+    ax3.plot(int(np.size(Autocorrelation_alpha[i])), Autocorrelation_alpha,'g-')
+# Fine-tune figure; make subplots close to each other and hide x ticks for
+# all but bottom plot.
+ax1.set_title('Convergency of Desicion Tree')
+f.subplots_adjust(hspace=0)
+plt.setp([a.get_xticklabels() for a in f.axes[:-1]], visible=False)
+
+# plt.interactive(True)
+# plt.plot(range(int(set_burn_in)+101), likelihood_record, 'bo', markersize=10) 
+# plt.xlabel(r'Iteration',{'fontname':'Times New Roman','fontsize':18})
+# plt.ylabel(r'Loglikelihood',{'fontname':'Times New Roman','fontsize':18})
 
