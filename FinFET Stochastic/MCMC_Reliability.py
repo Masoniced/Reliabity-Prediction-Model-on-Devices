@@ -110,9 +110,9 @@ class MCMC:
                 alpha_acm[:,thin_count] = alpha[:]
                 thin_count += 1
 
-        Autocorrelation_w = [sm.stattools.acf(w_acm[i], unbiased=True, nlags=50, fft=True) for i in range(num_cluster)]
-        Autocorrelation_theta = [sm.stattools.acf(theta_acm[i], unbiased=True, nlags=50, fft=True) for i in range(num_cluster)]
-        Autocorrelation_alpha = [sm.stattools.acf(alpha_acm[i], unbiased=True, nlags=50, fft=True) for i in range(num_cluster)]
+        Autocorrelation_w = [sm.stattools.acf(w_acm[i], unbiased=True, nlags=np.size(w_acm), fft=True) for i in range(num_cluster)]
+        Autocorrelation_theta = [sm.stattools.acf(theta_acm[i], unbiased=True, nlags=np.size(w_acm), fft=True) for i in range(num_cluster)]
+        Autocorrelation_alpha = [sm.stattools.acf(alpha_acm[i], unbiased=True, nlags=np.size(w_acm), fft=True) for i in range(num_cluster)]
 
 
             
@@ -445,15 +445,16 @@ Data, scale, min_value = MCMC.data_preprocessing(data)
 
 set_burn_in=1e5
 set_test=100
-num_cluster_set=3
-w_record, theta_record, alpha_record, likelihood_record, Autocorrelation_w, Autocorrelation_theta, Autocorrelation_alpha = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=num_cluster_set)
+num_cluster_set=4
+w_record, theta_record, alpha_record, likelihood_record, Autocorrelation_w, Autocorrelation_theta, Autocorrelation_alpha = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=num_cluster_set, thinning_gap=1000)
 
-import pdb; pdb.set_trace()
+#import pdb; pdb.set_trace()
+plt.interactive(True)
 f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
 for i in range(num_cluster_set):
-    ax1.plot(int(np.size(Autocorrelation_w[i])), Autocorrelation_w,'b-')
-    ax2.plot(int(np.size(Autocorrelation_theta[i])), Autocorrelation_theta,'r-')
-    ax3.plot(int(np.size(Autocorrelation_alpha[i])), Autocorrelation_alpha,'g-')
+    ax1.plot(range(int(np.size(Autocorrelation_w[i]))), Autocorrelation_w[i],'b-')
+    ax2.plot(range(int(np.size(Autocorrelation_theta[i]))), Autocorrelation_theta[i],'r-')
+    ax3.plot(range(int(np.size(Autocorrelation_alpha[i]))), Autocorrelation_alpha[i],'g-')
 # Fine-tune figure; make subplots close to each other and hide x ticks for
 # all but bottom plot.
 ax1.set_title('Convergency of Desicion Tree')
