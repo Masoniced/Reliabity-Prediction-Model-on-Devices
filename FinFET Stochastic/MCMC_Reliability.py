@@ -443,9 +443,9 @@ Data, scale, min_value = MCMC.data_preprocessing(data)
 
 #np.seterr(divide='ignore', invalid='ignore', over='ignore')
 
-set_burn_in=1e5
+set_burn_in=1e6
 set_test=100
-num_cluster_set=4
+num_cluster_set=3
 w_record, theta_record, alpha_record, likelihood_record, Autocorrelation_w, Autocorrelation_theta, Autocorrelation_alpha = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=num_cluster_set, thinning_gap=1000)
 
 #import pdb; pdb.set_trace()
