@@ -31,9 +31,9 @@ class MCMC:
         alpha = np.random.gamma(alpha_alpha, alpha_beta, num_cluster)
         # Samples
         likelihood_record = np.zeros(int(burn_in + test))
-        w_record = np.zeros((num_cluster,test))
-        theta_record = np.zeros((num_cluster,test))
-        alpha_record = np.zeros((num_cluster,test))
+        w_record = np.zeros((num_cluster,int(test)))
+        theta_record = np.zeros((num_cluster,int(test)))
+        alpha_record = np.zeros((num_cluster,int(test)))
         # Autocorrelation Check
         w_acm = np.zeros((num_cluster, acm_length))
         theta_acm = np.zeros((num_cluster, acm_length))
@@ -110,12 +110,11 @@ class MCMC:
                 alpha_acm[:,thin_count] = alpha[:]
                 thin_count += 1
 
-        Autocorrelation_w = [sm.stattools.acf(w_acm[i], unbiased=True, nlags=np.size(w_acm), fft=True) for i in range(num_cluster)]
-        Autocorrelation_theta = [sm.stattools.acf(theta_acm[i], unbiased=True, nlags=np.size(w_acm), fft=True) for i in range(num_cluster)]
-        Autocorrelation_alpha = [sm.stattools.acf(alpha_acm[i], unbiased=True, nlags=np.size(w_acm), fft=True) for i in range(num_cluster)]
+        Autocorrelation_w = [sm.stattools.acf(w_acm[i], unbiased=True, nlags=int(np.size(w_acm)/2), fft=True) for i in range(num_cluster)]
+        Autocorrelation_theta = [sm.stattools.acf(theta_acm[i], unbiased=True, nlags=int(np.size(w_acm)/2), fft=True) for i in range(num_cluster)]
+        Autocorrelation_alpha = [sm.stattools.acf(alpha_acm[i], unbiased=True, nlags=int(np.size(w_acm)/2), fft=True) for i in range(num_cluster)]
 
-
-            
+      
 
         return w_record, theta_record, alpha_record, likelihood_record, Autocorrelation_w, Autocorrelation_theta, Autocorrelation_alpha
 
@@ -323,8 +322,7 @@ class MCMC:
 
 
 
-
-    def data_preprocessing(data, shift=1e-5):
+    def data_preprocessing(data, shift=1e-9):
 
         data = data.astype(np.float32, copy = False)
         data = data[~np.isnan(data)]
@@ -332,9 +330,70 @@ class MCMC:
         scale = max(data) - min(data)
 
         data = (data -min_value) /  scale + shift
-
-
+        
         return data, scale, min_value
+
+
+
+
+    def model_reconstruction(w_record, theta_record, alpha_record, raw_data, scale, min_value, shift=1e-9):
+
+        num_cluster = np.size(w_record, 0)
+
+        data = np.sort(raw_data, axis = 0)
+        data_length = len(data)
+        raw_probability = np.array([(i - 0.3) / data_length for i in range(1, data_length+1)])
+        plot_p = np.log(-np.log(1 - raw_probability))
+
+        w = np.mean(w_record, axis=1)
+        theta = np.mean(theta_record, axis=1)
+        alpha = np.mean(alpha_record, axis=1)
+
+        w_std = np.std(w_record, axis=1)
+        theta_std = np.std(theta_record, axis=1)
+        alpha_std = np.std(alpha_record, axis=1)
+
+        summary = [(w, w_std), (theta, theta_std), (alpha, alpha_std)]
+
+        fiiting_range = np.logspace(np.log(shift), np.log(1+shift), 200, base=e)
+        real_fit_range = (fiiting_range - shift) * scale + min_value
+
+        fitting_probability = np.array([1 - sum([ w[k] * exp(- theta[k] * t ** (alpha[k])) for k in range(num_cluster)]) for t in fiiting_range])
+        plot_fit_p = np.log(-np.log(1 - fitting_probability))
+
+
+
+        return real_fit_range, plot_fit_p, data, plot_p, summary
+
+
+    def model_reconstruction_1(w_record, theta_record, alpha_record, raw_data):
+
+        num_cluster = np.size(w_record, 0)
+
+        data = np.sort(raw_data, axis = 0)
+        data_length = len(data)
+        raw_probability = np.array([(i - 0.3) / data_length for i in range(1, data_length+1)])
+        plot_p = np.log(-np.log(1 - raw_probability))
+
+        w = np.mean(w_record, axis=1)
+        theta = np.mean(theta_record, axis=1)
+        alpha = np.mean(alpha_record, axis=1)
+
+        w_std = np.std(w_record, axis=1)
+        theta_std = np.std(theta_record, axis=1)
+        alpha_std = np.std(alpha_record, axis=1)
+
+        summary = [(w, w_std), (theta, theta_std), (alpha, alpha_std)]
+
+        fiiting_range = np.logspace(np.log(min(data)), np.log(max(data)), 200, base=e)
+
+        fitting_probability = np.array([1 - sum([ w[k] * exp(- theta[k] * t ** (alpha[k])) for k in range(num_cluster)]) for t in fiiting_range])
+        plot_fit_p = np.log(-np.log(1 - fitting_probability))
+
+
+
+        return fiiting_range, plot_fit_p, data, plot_p, summary
+
 
 
 
@@ -443,23 +502,34 @@ Data, scale, min_value = MCMC.data_preprocessing(data)
 
 #np.seterr(divide='ignore', invalid='ignore', over='ignore')
 
-set_burn_in=1e6
-set_test=100
+set_burn_in=1e5
+set_test=1e5
 num_cluster_set=3
 w_record, theta_record, alpha_record, likelihood_record, Autocorrelation_w, Autocorrelation_theta, Autocorrelation_alpha = MCMC.MCMC_MX_sampler(Data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=num_cluster_set, thinning_gap=1000)
+real_fit_range, plot_fit_p, real_data, plot_p, summary = MCMC.model_reconstruction(w_record, theta_record, alpha_record, data, scale, min_value)
+#real_fit_range, plot_fit_p, real_data, plot_p, summary = MCMC.model_reconstruction_1(w_record, theta_record, alpha_record, data)
 
 #import pdb; pdb.set_trace()
 plt.interactive(True)
-f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+f1, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
 for i in range(num_cluster_set):
     ax1.plot(range(int(np.size(Autocorrelation_w[i]))), Autocorrelation_w[i],'b-')
     ax2.plot(range(int(np.size(Autocorrelation_theta[i]))), Autocorrelation_theta[i],'r-')
     ax3.plot(range(int(np.size(Autocorrelation_alpha[i]))), Autocorrelation_alpha[i],'g-')
 # Fine-tune figure; make subplots close to each other and hide x ticks for
 # all but bottom plot.
-ax1.set_title('Convergency of Desicion Tree')
-f.subplots_adjust(hspace=0)
-plt.setp([a.get_xticklabels() for a in f.axes[:-1]], visible=False)
+ax1.set_title('Convergence of Decision Tree')
+f1.subplots_adjust(hspace=0)
+plt.setp([a.get_xticklabels() for a in f1.axes[:-1]], visible=False)
+
+f2 = plt.figure()
+ax2 = f2.add_subplot(111)
+ax2.plot(real_data, plot_p, 'bo', markersize=10) 
+ax2.plot(real_fit_range, plot_fit_p, 'b-', linewidth=2)
+
+print(summary)
+
+
 
 # plt.interactive(True)
 # plt.plot(range(int(set_burn_in)+101), likelihood_record, 'bo', markersize=10) 
