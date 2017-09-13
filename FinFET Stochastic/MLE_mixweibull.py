@@ -79,7 +79,7 @@ def MLE_weibull(data, mode, ratio=1/3, fixa=None, fixb=None, tol=1e-9, custom = 
 		CDF = 1 - sy.exp(- (t/tor1)**k1) * sy.exp(- (t/tor2)**k2)
 
 		if fixa==None and fixb==None:
-			initial_values =[ 0.001, 0.001, data[round(data_length*0.63*ratio) -1], data[round(data_length*0.63*(1-ratio)+data_length*ratio) -1]]
+			initial_values =[ 0.01, 0.1, data[round(data_length*0.63*ratio) -1], data[round(data_length*0.63*(1-ratio)+data_length*ratio) -1]]
 			var_list = [k1, k2, tor1, tor2]
 			Probability_bound = ((tol,1/tol),(tol,1/tol),(tol,1/tol),(tol,1/tol))
 			Least_func = sum([(CDF.subs(t, i) - j)**2 for i,j in zip(data, raw_probability)])
@@ -245,7 +245,7 @@ def MLE(data, mode, ratio=1/3, fixa=None, fixb=None, tol=1e-9, custom = None):
 		CDF = 1 - (1 + 1/a1*(t/tor1)**(b1))**(-a1) * (1 + 1/a2*(t/tor2)**(b2))**(-a2)
 
 		if fixa==None and fixb==None:
-			initial_values =[1, 1, 1, 1, data[round(data_length*0.63*ratio) -1], data[round(data_length*0.63*(1-ratio)+data_length*ratio) -1]]
+			initial_values =[0.1, 0.1, 1, 1, data[round(data_length*0.63*ratio) -1], data[round(data_length*0.63*(1-ratio)+data_length*ratio) -1]]
 			var_list = [a1, a2, b1, b2, tor1, tor2]
 			Probability_bound = ((tol, 1/tol), (tol, 1/tol), (tol, 1/tol), (tol, 1/tol), (tol, 1/tol), (tol, 1/tol))
 			Least_func = sum([(CDF.subs(t, i) - j)**2 for i,j in zip(data, raw_probability)])
@@ -406,16 +406,16 @@ def step_checking(f, g, d, x, ini_alpha):
 
 
 
-Data_file = pd.ExcelFile(r'C:\Users\Mason\Desktop\GAA.xlsx')  # revise path
+Data_file = pd.ExcelFile(r'C:\Users\Mason\Desktop\Mei_sen_BD_data_1nA.xlsx')  # revise path
 #Data_file = pd.ExcelFile(r'C:\Users\Sen\Desktop\1.xlsx')
 p_data = Data_file.parse('Sheet1', index_row = None, header = None)
 p_data.drop(p_data.columns[[0]], axis = 0, inplace  =True)  # drop first row
 p_data = p_data.iloc[:,:].values
-data1 = p_data[:,6]    # data from which column
+data1 = p_data[:,0]    # data from which column
 data1 = data1.astype(np.float32, copy = False)
 data1 = data1[~np.isnan(data1)]
 
-data2 = p_data[:,7]    # data from which column
+data2 = p_data[:,1]    # data from which column
 data2 = data2.astype(np.float32, copy = False)
 data2 = data2[~np.isnan(data2)]
 
@@ -423,9 +423,9 @@ data3 = p_data[:,2]    # data from which column
 data3 = data3.astype(np.float32, copy = False)
 data3 = data3[~np.isnan(data3)]
 
-data4 = p_data[:,3]    # data from which column
-data4 = data4.astype(np.float32, copy = False)
-data4 = data4[~np.isnan(data4)]
+# data4 = p_data[:,7]    # data from which column
+# data4 = data4.astype(np.float32, copy = False)
+# data4 = data4[~np.isnan(data4)]
 
 custom = None
 if custom == None:
@@ -468,19 +468,21 @@ if custom == None:
 	# plt.plot(fitting_range1_3, fitting_Prob1_3, 'r-', linewidth=3)	
 
 
-	Result1_1, Data1_1, C_Pro1_1, fitting_range1_1, fitting_Prob1_1 = MLE_weibull(data1, 'SC', tol=1e-9)
-	Result1_2, Data1_2, C_Pro1_2, fitting_range1_2, fitting_Prob1_2 = MLE_weibull(data2, 'SC', tol=1e-9)
+	Result1_1, Data1_1, C_Pro1_1, fitting_range1_1, fitting_Prob1_1 = MLE(data1, 'SC', tol=1e-8)
+	Result1_2, Data1_2, C_Pro1_2, fitting_range1_2, fitting_Prob1_2 = MLE_weibull(data1, 'SC', tol=1e-8)
 	#import pdb; pdb.set_trace()
-	# Result1_3, Data1_3, C_Pro1_3, fitting_range1_3, fitting_Prob1_3 = MLE(data3, 'SC', tol=1e-8)
-	# Result1_4, Data1_4, C_Pro1_4, fitting_range1_4, fitting_Prob1_4 = MLE(data4, 'SC', tol=1e-8)
+	# Result1_3, Data1_3, C_Pro1_3, fitting_range1_3, fitting_Prob1_3 = MLE(data3, 'BC', tol=1e-8)
+	# Result1_4, Data1_4, C_Pro1_4, fitting_range1_4, fitting_Prob1_4 = MLE_weibull(data4, 'SC', tol=1e-8)
 	print(Result1_1)
 	print(Result1_2)
+	# print(Result1_3)
+	# print(Result1_4)
 
 	plt.plot(Data1_1, C_Pro1_1, 'ro', markersize=6)
-	plt.plot(fitting_range1_1*1.02, fitting_Prob1_1, 'r-', linewidth=3)
+	plt.plot(fitting_range1_1, fitting_Prob1_1, 'r-', linewidth=3)
 
 	plt.plot(Data1_2, C_Pro1_2, 'go', markersize=6)
-	plt.plot(fitting_range1_2, fitting_Prob1_2, 'g-', linewidth=3)
+	plt.plot(fitting_range1_2*1.04, fitting_Prob1_2, 'g-', linewidth=3)
 
 	# plt.plot(Data1_3, C_Pro1_3, 'bo', markersize=6)
 	# plt.plot(fitting_range1_3, fitting_Prob1_3, 'b-', linewidth=3)	
@@ -490,9 +492,37 @@ if custom == None:
 
 	plt.xscale('log')
 	plt.ylim([-4,2])
-	plt.xlim([1.5e10,4e10])
+	plt.xlim([1.5,11])
 	plt.xlabel(r'Time to Failure (s)',{'fontname':'Times New Roman','fontsize':18})
 	plt.ylabel(r'ln(-ln(1-F))',{'fontname':'Times New Roman','fontsize':18})
+
+	df1 = pd.DataFrame(Data1_1)
+	df2 = pd.DataFrame(C_Pro1_1)
+	df3 = pd.DataFrame(fitting_range1_1)
+	df4 = pd.DataFrame(fitting_Prob1_1)	
+	df5 = pd.DataFrame(Data1_2)
+	df6 = pd.DataFrame(C_Pro1_2)
+	df7 = pd.DataFrame(fitting_range1_2)
+	df8 = pd.DataFrame(fitting_Prob1_2)
+	# df9 = pd.DataFrame(Data1_3)
+	# df10 = pd.DataFrame(C_Pro1_3)	
+	# df11 = pd.DataFrame(fitting_range1_3)
+	# df12 = pd.DataFrame(fitting_Prob1_3)
+
+	writer = pd.ExcelWriter('output.xlsx')
+	df1.to_excel(writer,'Sheet1')
+	df2.to_excel(writer,'Sheet2')
+	df3.to_excel(writer,'Sheet3')
+	df4.to_excel(writer,'Sheet4')
+	df5.to_excel(writer,'Sheet5')
+	df6.to_excel(writer,'Sheet6')
+	df7.to_excel(writer,'Sheet7')
+	df8.to_excel(writer,'Sheet8')
+	# df9.to_excel(writer,'Sheet9')
+	# df10.to_excel(writer,'Sheet10')
+	# df11.to_excel(writer,'Sheet11')
+	# df12.to_excel(writer,'Sheet12')
+	writer.save()
 
 else:
 	Result, Error, Iter, Minimum = MLE(data, 'BC', custom = 'self')
