@@ -268,12 +268,12 @@ def step_checking(f, g, d, x, ini_alpha, tol, mixiter=50):
 
 
 
-Data_file = pd.ExcelFile(r'C:\Users\Mason\Desktop\GAA.xlsx')  # revise path
+Data_file = pd.ExcelFile(r'C:\Users\Mason\Documents\Project\Matlab Project\Clustering data processing\FinFET\MCMC.xlsx')  # revise path
 #p_data = pd.read_csv(r'C:\Users\Mason\Desktop\LC8A_ST-34_TDDB Raw.txt', sep='\t', header = None, low_memory=False)
 p_data = Data_file.parse('Sheet1', index_row = None, header = None)
 p_data.drop(p_data.columns[[0]], axis = 0, inplace  =True)  # drop first row
 p_data = p_data.iloc[:,:].values
-data = p_data[:,7]    # data from which column
+data = p_data[:,3]    # data from which column
 data = data.astype(np.float32, copy = False)
 data = data[~np.isnan(data)]
 
@@ -281,7 +281,7 @@ data = data[~np.isnan(data)]
 
 custom = None
 if custom == None:
-	Result, Data, C_Pro, fitting_range, fitting_Prob = MLE(data, 'LSC', tol=1e-7)
+	Result, Data, C_Pro, fitting_range, fitting_Prob = MLE(data, 'LBC', tol=1e-7)
 	print(Result)
 
 	plt.interactive(True)
