@@ -289,7 +289,8 @@ class MCMC:
         theta = np.mean(theta_record, axis=1)
         alpha = np.mean(alpha_record, axis=1)
 
-        w_std = np.std(w_record, axis=1)
+        w_st
+        d = np.std(w_record, axis=1)
         theta_std = np.std(theta_record, axis=1)
         alpha_std = np.std(alpha_record, axis=1)
 
