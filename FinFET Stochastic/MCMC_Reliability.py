@@ -512,6 +512,7 @@ data = data[~np.isnan(data)]
 Data, scale, min_value = MCMC.data_preprocessing(data)
 
 
+
 #np.seterr(divide='ignore', invalid='ignore', over='ignore')
 
 set_burn_in=1e5
