@@ -9,7 +9,7 @@ from math import *
 
 class MCMC:
 
-    def MCMC_MW_sampler(data, burn_in, test, tol, num_cluster=None, thinning_gap=100):  # Mixture Weibull sampler
+    def MCMC_MW_sampler(data, burn_in, test, tol, num_cluster=None, thinning_gap=10):  # Mixture Weibull sampler
 
         # Initialization
         num_data = len(data)
@@ -21,10 +21,10 @@ class MCMC:
             
         # Posterior Distribution sum(w_model*(theta*(s)**(alpha-1)*alpha*exp(-theta*(s)**alpha))
         # Pramaters
-        theta_alpha = 0.1
-        theta_beta = 0.01
+        theta_alpha = 0.01
+        theta_beta = 1 / 0.01
         alpha_alpha = 1
-        alpha_beta = 0.2
+        alpha_beta = 1 / 0.2
         w_fa = np.ones(num_cluster)
         origin_w_fa = w_fa[:]
         w_model = np.random.dirichlet(w_fa)
@@ -80,7 +80,7 @@ class MCMC:
 
                 new_theta_alpha = len(cluster_data[i]) + theta_alpha
                 new_theta_beta = theta_beta + sum([cluster_data[i][k]**(alpha[i]) for k in range(len(cluster_data[i]))])
-                new_theta[i] = np.random.gamma(new_theta_alpha, new_theta_beta)
+                new_theta[i] = np.random.gamma(new_theta_alpha, 1 / new_theta_beta)
 
             theta = new_theta[:]
 
@@ -122,7 +122,7 @@ class MCMC:
 
 
 
-    def slice_sampler(pdf, current_value, step=3, left_bound=None, right_bound=None): 
+    def slice_sampler(pdf, current_value, step=0.2, left_bound=None, right_bound=None): 
 
         P = pdf
         criteria = 1
@@ -163,6 +163,9 @@ class MCMC:
 
         criteria = 1
 
+        fix_point = s_point
+        count = 0
+
         if l_bound == None and r_bound != None:
 
             while criteria == 1:
@@ -177,7 +180,11 @@ class MCMC:
                     criteria = 0
                     break
                 else:
-                    direction *= 2
+                    count += 1
+                    s_point = n_point
+                    if count > 2000:
+                       criteria = 0 
+                       out = fix_point
 
         elif l_bound != None and r_bound == None:
 
@@ -193,7 +200,11 @@ class MCMC:
                     criteria = 0
                     break
                 else:
-                    direction *= 2
+                    count += 1
+                    s_point = n_point
+                    if count > 2000:
+                       criteria = 0
+                       out = fix_point
 
         elif l_bound != None and r_bound != None:
 
@@ -213,7 +224,11 @@ class MCMC:
                     criteria = 0
                     break
                 else:
-                    direction *= 2
+                    count += 1
+                    s_point = n_point
+                    if count > 2000:
+                       criteria = 0
+                       out = fix_point
 
         else:
 
@@ -225,7 +240,11 @@ class MCMC:
                     criteria = 0
                     break
                 else:
-                    direction *= 2
+                    count += 1
+                    s_point = n_point
+                    if count > 2000:
+                       criteria = 0
+                       out = fix_point
 
         return out
 
@@ -249,10 +268,10 @@ class MCMC:
     def model_reconstruction(w_record, theta_record, alpha_record, raw_data, scale, min_value, shift=1e-9):
 
         num_cluster = np.size(w_record, 0)
-
+ 
         data = np.sort(raw_data, axis = 0)
         data_length = len(data)
-        raw_probability = np.array([(i - 0.3) / data_length for i in range(1, data_length+1)])
+        raw_probability = np.array([(i - 0.3) / (data_length + 0.4) for i in range(1, data_length+1)])
         plot_p = np.log(-np.log(1 - raw_probability))
 
         w = np.mean(w_record, axis=1)
@@ -276,35 +295,34 @@ class MCMC:
 
 
 
-    def model_reconstruction_1(w_record, theta_record, alpha_record, raw_data, scale, shift=1e-9):
+    def model_reconstruction_1(w_record, theta_record, alpha_record, raw_data):
 
         num_cluster = np.size(w_record, 0)
 
         data = np.sort(raw_data, axis = 0)
         data_length = len(data)
-        raw_probability = np.array([(i - 0.3) / data_length for i in range(1, data_length+1)])
+        raw_probability = np.array([(i - 0.3) / (data_length + 0.4) for i in range(1, data_length+1)])
         plot_p = np.log(-np.log(1 - raw_probability))
 
         w = np.mean(w_record, axis=1)
         theta = np.mean(theta_record, axis=1)
         alpha = np.mean(alpha_record, axis=1)
 
-        w_st
-        d = np.std(w_record, axis=1)
+        
+        w_std = np.std(w_record, axis=1)
         theta_std = np.std(theta_record, axis=1)
         alpha_std = np.std(alpha_record, axis=1)
 
         summary = [(w, w_std), (theta, theta_std), (alpha, alpha_std)]
 
-        fiiting_range = np.logspace(np.log(shift), np.log(1), 200, base=e)
-        real_fit_range = (fiiting_range) * scale 
+        fiiting_range = np.logspace(np.log(min(raw_data)), np.log(max(raw_data)), 200, base=e)
 
         fitting_probability = np.array([1 - sum([ w[k] * exp(- theta[k] * t ** (alpha[k])) for k in range(num_cluster)]) for t in fiiting_range])
         plot_fit_p = np.log(-np.log(1 - fitting_probability))
 
 
 
-        return real_fit_range, plot_fit_p, data, plot_p, summary
+        return fiiting_range, plot_fit_p, data, plot_p, summary
 
 
 
@@ -356,7 +374,7 @@ class MCPY:
             for i in range(num_data):
 
                 pz_list = np.array([w_model[k] * (theta[k]*alpha[k]*data[i]**(alpha[k]-1)) * exp(-theta[k]*data[i]**(alpha[k])) for k in range(num_cluster)])
-
+  
                 mv_pz, ind_pz = max([(mv_pz, ind_pz) for ind_pz, mv_pz in enumerate(pz_list)])
                 cluster_data[ind_pz].append(data[i])
 
@@ -374,7 +392,7 @@ class MCPY:
             w_model = np.random.dirichlet(w_fa)
 
 
-            # Update of theta
+            # Update of theta 
             import pdb; pdb.set_trace()
             for i in range(num_cluster):
 
@@ -502,11 +520,11 @@ def step_checking(f, g, d, x, ini_alpha, tol, mixiter=50):
 
 
 Data_file = pd.ExcelFile(r'C:\Users\Mason\Documents\Project\Matlab Project\Clustering data processing\FinFET\MCMC.xlsx')  # revise path
-#Data_file = pd.ExcelFile(r'C:\Users\Sen\Desktop\1.xlsx')
+#Data_file = pd.ExcelFile(r'C:\Users\Sen\Desktop\1.xlsx') 
 p_data = Data_file.parse('Sheet1', index_row = None, header = None)
 p_data.drop(p_data.columns[[0]], axis = 0, inplace  =True)  # drop first row
 p_data = p_data.iloc[:,:].values
-data = p_data[:,5]    # data from which column
+data = p_data[:,3]    # data from which column
 data = data.astype(np.float32, copy = False)
 data = data[~np.isnan(data)]
 Data, scale, min_value = MCMC.data_preprocessing(data)
@@ -515,12 +533,14 @@ Data, scale, min_value = MCMC.data_preprocessing(data)
 
 #np.seterr(divide='ignore', invalid='ignore', over='ignore')
 
-set_burn_in=1e5
-set_test=1e5
-num_cluster_set=3
-w_record, theta_record, alpha_record, likelihood_record, Autocorrelation_w, Autocorrelation_theta, Autocorrelation_alpha = MCMC.MCMC_MW_sampler(Data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=num_cluster_set, thinning_gap=1000)
-real_fit_range, plot_fit_p, real_data, plot_p, summary = MCMC.model_reconstruction(w_record, theta_record, alpha_record, data, scale, min_value)
-#real_fit_range, plot_fit_p, real_data, plot_p, summary = MCMC.model_reconstruction_1(w_record, theta_record, alpha_record, data, scale)
+set_burn_in=2e4
+set_test=1e4
+num_cluster_set=4
+w_record, theta_record, alpha_record, likelihood_record, Autocorrelation_w, Autocorrelation_theta, Autocorrelation_alpha = MCMC.MCMC_MW_sampler(data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=num_cluster_set, thinning_gap=100)
+#record1, theta_record1, alpha_record1, likelihood_record1, Autocorrelation_w1, Autocorrelation_theta1, Autocorrelation_alpha1 = MCMC.MCMC_MW_sampler(data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=5, thinning_gap=100)
+#real_fit_range, plot_fit_p, real_data, plot_p, summary = MCMC.model_reconstruction(w_record, theta_record, alpha_record, data, scale, min_value)
+fiiting_range, plot_fit_p, real_data, plot_p, summary = MCMC.model_reconstruction_1(w_record, theta_record, alpha_record, data)
+#fiiting_range1, plot_fit_p1, real_data1, plot_p1, summary1 = MCMC.model_reconstruction_1(w_record1, theta_record1, alpha_record1, data)
 
 #import pdb; pdb.set_trace()
 plt.interactive(True)
@@ -537,15 +557,23 @@ plt.setp([a.get_xticklabels() for a in f1.axes[:-1]], visible=False)
 
 f2 = plt.figure()
 ax2 = f2.add_subplot(111)
-ax2.plot(real_data, plot_p, 'bo', markersize=10) 
-ax2.plot(real_fit_range, plot_fit_p, 'b-', linewidth=2)
+ax2.plot(real_data, plot_p, 'ko', markersize=6) 
+ax2.plot(fiiting_range, plot_fit_p, 'g-', linewidth=4)
+#ax2.plot(fiiting_range1, plot_fit_p1, 'r-', linewidth=4)
+
+ax2.set_xscale('log')   
+ax2.set_xlabel(r'Time to Failure (s)',{'fontname':'Times New Roman','fontsize':18})
+ax2.set_ylabel(r'ln(-ln(1-F))',{'fontname':'Times New Roman','fontsize':18})
 
 f3 = plt.figure()
 ax3 = f3.add_subplot(111)
-ax3.plot(range(len(likelihood_record)), likelihood_record, 'b-', markersize=10)
+ax3.plot(range(len(likelihood_record)), -  likelihood_record, 'b-', markersize=10)
+
+ax3.set_xscale('log')
 
 
 print(summary)
+print(np.mean(likelihood_record[int(set_burn_in):int(set_burn_in + set_test -1)], axis=0))
 
 
 
