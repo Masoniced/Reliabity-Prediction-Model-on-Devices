@@ -15,7 +15,7 @@ def MLE(data, mode, ratio=1/3, fixa=None, fixb=None, tol=1e-9, custom = None):
 	data = np.sort(data, axis = 0)
 	#data = (data-data[0])/(data[-1]-data(0))
 	data_length = len(data)
-	raw_probability = np.array([(i - 0.3) / data_length for i in range(1, data_length+1)])
+	raw_probability = np.array([(i - 0.3) / (data_length + 0.4) for i in range(1, data_length+1)])
 	plot_p = np.log(-np.log(1 - raw_probability))
 
 	if mode=='SC':
@@ -268,12 +268,12 @@ def step_checking(f, g, d, x, ini_alpha, tol, mixiter=50):
 
 
 
-Data_file = pd.ExcelFile(r'C:\Users\Mason\Desktop\Set_reset_100nA.XLSX')  # revise path
+Data_file = pd.ExcelFile(r'C:\Users\Mason\Documents\Project\Matlab Project\Clustering data processing\FinFET\MCMC.xlsx')  # revise path
 #p_data = pd.read_csv(r'C:\Users\Mason\Desktop\LC8A_ST-34_TDDB Raw.txt', sep='\t', header = None, low_memory=False)
 p_data = Data_file.parse('Sheet1', index_row = None, header = None)
 p_data.drop(p_data.columns[[0]], axis = 0, inplace  =True)  # drop first row
 p_data = p_data.iloc[:,:].values
-data = p_data[:,0]    # data from which column
+data = p_data[:,3]    # data from which column
 data = [x for x in data if str(x) != "Na"]
 data = [x for x in data if str(x) != "nan"]
 # import pdb; pdb.set_trace()
@@ -290,7 +290,7 @@ data = np.array(data)
 
 custom = None
 if custom == None:
-	Result, Data, C_Pro, fitting_range, fitting_Prob = MLE(data, 'LSC', tol=1e-9)
+	Result, Data, C_Pro, fitting_range, fitting_Prob = MLE(data, 'LBC', tol=1e-9)
 	print(Result)
 
 	plt.interactive(True)
