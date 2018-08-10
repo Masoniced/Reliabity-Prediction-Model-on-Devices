@@ -91,6 +91,7 @@ class MCMC:
                 p_alpha = lambda x: x**(len(cluster_data[i]) + alpha_alpha - 1) * exp(x * sum([log(cluster_data[i][k]) for k in range(len(cluster_data[i]))]) - 
                     theta[i] * sum([cluster_data[i][k]**(x) for k in range(len(cluster_data[i]))]) - x * alpha_beta)
 
+
                 new_alpha[i] = MCMC.slice_sampler(p_alpha, alpha[i], left_bound=0)
             
             alpha = new_alpha[:]
@@ -519,7 +520,7 @@ def step_checking(f, g, d, x, ini_alpha, tol, mixiter=50):
 
 
 
-Data_file = pd.ExcelFile(r'C:\Users\Mason\Documents\Project\Matlab Project\Clustering data processing\FinFET\MCMC.xlsx')  # revise path
+Data_file = pd.ExcelFile(r'C:\Users\Mason\Desktop\MCMC.xlsx')  # revise path
 #Data_file = pd.ExcelFile(r'C:\Users\Sen\Desktop\1.xlsx') 
 p_data = Data_file.parse('Sheet1', index_row = None, header = None)
 p_data.drop(p_data.columns[[0]], axis = 0, inplace  =True)  # drop first row
@@ -535,7 +536,7 @@ Data, scale, min_value = MCMC.data_preprocessing(data)
 
 set_burn_in=2e4
 set_test=1e4
-num_cluster_set=4
+num_cluster_set=3
 w_record, theta_record, alpha_record, likelihood_record, Autocorrelation_w, Autocorrelation_theta, Autocorrelation_alpha = MCMC.MCMC_MW_sampler(data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=num_cluster_set, thinning_gap=100)
 #record1, theta_record1, alpha_record1, likelihood_record1, Autocorrelation_w1, Autocorrelation_theta1, Autocorrelation_alpha1 = MCMC.MCMC_MW_sampler(data, burn_in=set_burn_in, test=set_test, tol=1e-9, num_cluster=5, thinning_gap=100)
 #real_fit_range, plot_fit_p, real_data, plot_p, summary = MCMC.model_reconstruction(w_record, theta_record, alpha_record, data, scale, min_value)
