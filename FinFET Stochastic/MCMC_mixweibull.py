@@ -286,7 +286,7 @@ class MCMC:
         return fiiting_range, plot_fit_p, data, plot_p, summary
 
 
-Data_file = pd.ExcelFile(r'C:\Users\Mason\Documents\Project\Matlab Project\Clustering data processing\FinFET\MCMC.xlsx')  # revise path
+Data_file = pd.ExcelFile(r'C:\Users\Mason\Desktop\MCMC.xlsx')  # revise path
 #Data_file = pd.ExcelFile(r'C:\Users\Sen\Desktop\1.xlsx') 
 p_data = Data_file.parse('Sheet1', index_row = None, header = None)
 p_data.drop(p_data.columns[[0]], axis = 0, inplace  =True)  # drop first row
