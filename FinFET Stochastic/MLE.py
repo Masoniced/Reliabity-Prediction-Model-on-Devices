@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from math import *
 import sys
+import csv
+from itertools import zip_longest
 
 # SC: single cluster; BC: Bi-clustering; LSC: Least square single cluster; LBC: Least square Bi-cluster
 # Revise file path accordingly
@@ -238,7 +240,7 @@ def step_checking(f, g, d, x, ini_alpha, tol, mixiter=50):
 	final_a = 1
 	count = 0
 
-	#import pdb; pdb.set_trace()
+	#import pdb; pdb.set_trace()C:\Users\Mason\Documents\Project\Python_Project\FinFET Stochastic
 
 	while step_criteria == 0:
 		count += 1
@@ -268,7 +270,7 @@ def step_checking(f, g, d, x, ini_alpha, tol, mixiter=50):
 
 
 
-Data_file = pd.ExcelFile(r'C:\Users\Mason\Documents\Project\Matlab Project\Clustering data processing\FinFET\MCMC.xlsx')  # revise path
+Data_file = pd.ExcelFile(r'C:\Users\Mason\Desktop\MCMC.xlsx')  # revise path
 #p_data = pd.read_csv(r'C:\Users\Mason\Desktop\LC8A_ST-34_TDDB Raw.txt', sep='\t', header = None, low_memory=False)
 p_data = Data_file.parse('Sheet1', index_row = None, header = None)
 p_data.drop(p_data.columns[[0]], axis = 0, inplace  =True)  # drop first row
@@ -292,6 +294,11 @@ custom = None
 if custom == None:
 	Result, Data, C_Pro, fitting_range, fitting_Prob = MLE(data, 'LBC', tol=1e-9)
 	print(Result)
+	d = [Data, C_Pro, fitting_range, fitting_Prob]
+	with open(r"C:\Users\Mason\Documents\Project\Python_Project\FinFET Stochastic\file.csv","w+") as f:
+		writer = csv.writer(f)
+		for values in zip_longest(*d):
+			writer.writerow(values)
 
 	plt.interactive(True)
 	plt.plot(Data, C_Pro, 'bo', markersize=10) 
